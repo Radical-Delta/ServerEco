@@ -2,6 +2,8 @@ package org.radicaldelta.turtledude01.servereco;
 
 import com.google.inject.Inject;
 import ninja.leaping.configurate.commented.CommentedConfigurationNode;
+import ninja.leaping.configurate.loader.ConfigurationLoader;
+import ninja.leaping.configurate.objectmapping.ObjectMappingException;
 import org.slf4j.Logger;
 import org.spongepowered.api.Sponge;
 import org.spongepowered.api.config.DefaultConfig;
@@ -18,7 +20,9 @@ import org.spongepowered.api.service.economy.transaction.ResultType;
 import org.spongepowered.api.service.economy.transaction.TransactionResult;
 import org.spongepowered.api.service.economy.transaction.TransactionTypes;
 
+import java.io.IOException;
 import java.math.BigDecimal;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Optional;
 
@@ -30,29 +34,35 @@ public class ServerEco{
     @Inject
     private Logger logger;
 
-    private static ServerEco serverEco;
-
     public Logger getLogger() {
         return logger;
     }
 
-    @Inject
-    @DefaultConfig(sharedRoot = false)
-    private Path configDir;
+    @Inject @DefaultConfig(sharedRoot = false)
+    ConfigurationLoader<CommentedConfigurationNode> loader;
 
-    @Inject
-    private ServerEco() {
-        this.serverEco = this;
-    }
+    @Inject @DefaultConfig(sharedRoot = false)
+    Path path;
 
-    public static ServerEco getServerEco()
-    {
-        return serverEco;
-    }
+    Config config;
 
     @Listener
-    public void onPreInitialization(GamePreInitializationEvent event) {
-        Config.getConfig().setup();
+    public void onPreInitialization(GamePreInitializationEvent event) throws ObjectMappingException {
+        if (!Files.exists(path)) {
+            try {
+                Sponge.getGame().getAssetManager().getAsset(this, "default.conf").get().copyToFile(path);
+            }
+            catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+
+        try {
+            config = loader.load().getValue(Config.type);
+        }
+        catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     @Listener
@@ -67,53 +77,46 @@ public class ServerEco{
         Cause cause = event.getCause();
         BigDecimal amount;
         TransactionResult result = null;
-        CommentedConfigurationNode config = Config.getConfig().get();
-
         Optional<PluginContainer> container = cause.all().stream().map(o -> {
             if (o instanceof PluginContainer)
                 return Optional.of((PluginContainer) o);
             else
                 return Sponge.getPluginManager().fromInstance(o);
         }).filter(Optional::isPresent).map(Optional::get).findFirst();
-
         if (!container.isPresent()) {
-            if (config.getNode("debug").getBoolean()) {
+            if (config.debug) {
                 getLogger().warn("Warning! a plugin using the Economy is incompatible with this plugin!");
             }
             return;
         }
 
-        String plugin = container.get().getId();
+        String pluginName = container.get().getId();
 
 
-        if (config.getNode("debug").getBoolean()) {
-            getLogger().info("Cause for transaction: " + plugin);
+        if (config.debug) {
+            getLogger().info("Cause for transaction: " + pluginName);
         }
 
-        if (Config.getConfig().get().getNode("plugin", plugin).getString() != null) {
-            if (config.getNode("plugin", plugin, "account") != null) {
-                getLogger().info("Account" + config.getNode("plugin", plugin, "account").getString());
-                amount = event.getTransactionResult().getAmount();
-                String confAct = config.getNode("plugin", plugin, "account").getString();
-                Optional<Account> act = economyService.getOrCreateAccount(confAct);
-                if (event.getTransactionResult().getType() == TransactionTypes.DEPOSIT) {
-                    result = act.get().withdraw(event.getTransactionResult().getCurrency(), amount, Cause.source(this).build());
-                }
-                else if (event.getTransactionResult().getType() == TransactionTypes.WITHDRAW) {
-                    result = act.get().deposit(event.getTransactionResult().getCurrency(), amount, Cause.source(this).build());
-                }
-                else {
-                    getLogger().error("A malformed transaction has occured!");
-                    return;
-                }
+        if (config.plugin.containsKey(pluginName)) {
+            amount = event.getTransactionResult().getAmount();
+            String confAct = config.plugin.get(pluginName);
+            Optional<Account> act = economyService.getOrCreateAccount(confAct);
+            if (event.getTransactionResult().getType() == TransactionTypes.DEPOSIT) {
+                result = act.get().withdraw(event.getTransactionResult().getCurrency(), amount, Cause.source(this).build());
+            }
+            else if (event.getTransactionResult().getType() == TransactionTypes.WITHDRAW) {
+                result = act.get().deposit(event.getTransactionResult().getCurrency(), amount, Cause.source(this).build());
+            }
+            else {
+                getLogger().error("A malformed transaction has occured!");
+                return;
+            }
 
-                if (result.getResult() == ResultType.SUCCESS) {
-                    getLogger().info("Transaction of " + amount + " to/from " + confAct + " Success!");
-                }
-                else {
-                    getLogger().warn("Transaction failed!");
-                    cancelEco(event);
-                }
+            if (result.getResult() == ResultType.SUCCESS) {
+                getLogger().info("Transaction of " + amount + " to/from " + confAct + " Success!");
+            }
+            else {
+                getLogger().warn("Transaction failed!");cancelEco(event);
             }
         }
     }
@@ -136,10 +139,6 @@ public class ServerEco{
                 getLogger().warn("Transaction failed and refund failed");
             }
         }
-    }
-
-    public Path getConfigDir() {
-        return configDir;
     }
 }
 

@@ -3,7 +3,7 @@ plugins {
 }
 
 group 'org.radicaldelta.turtledude01.servereco'
-version '1.0-SNAPSHOT'
+version '0.1.0-SNAPSHOT'
 description 'Server Eco Account'
 
 apply plugin: 'java'
