@@ -59,6 +59,8 @@ public class ServerEco{
         return serverEco;
     }
 
+    CommentedConfigurationNode config = Config.getConfig().get();
+
     @Listener
     public void onPreInitialization(GamePreInitializationEvent event) {
         Config.getConfig().setup();
@@ -76,7 +78,6 @@ public class ServerEco{
         Cause cause = event.getCause();
         BigDecimal amount;
         TransactionResult result = null;
-        CommentedConfigurationNode config = Config.getConfig().get();
 
         Optional<PluginContainer> container = cause.all().stream().map(o -> {
             if (o instanceof PluginContainer)
@@ -100,18 +101,14 @@ public class ServerEco{
         }
 
         if (Config.getConfig().get().getNode("plugin", plugin).getString() != null) {
-            getLogger().info("Plugin: " + plugin);
             if (config.getNode("plugin", plugin, "account") != null) {
-                getLogger().info("Account" + config.getNode("plugin", plugin, "account").getString());
                 amount = event.getTransactionResult().getAmount();
                 String confAct = config.getNode("plugin", plugin, "account").getString();
                 Optional<Account> act = economyService.getOrCreateAccount(confAct);
                 if (event.getTransactionResult().getType() == TransactionTypes.DEPOSIT) {
-                    getLogger().debug("Deposit");
                     result = act.get().withdraw(event.getTransactionResult().getCurrency(), amount, Cause.source(this).build());
                 }
                 else if (event.getTransactionResult().getType() == TransactionTypes.WITHDRAW) {
-                    getLogger().debug("withdraw");
                     result = act.get().deposit(event.getTransactionResult().getCurrency(), amount, Cause.source(this).build());
                 }
                 else {
@@ -119,7 +116,7 @@ public class ServerEco{
                     return;
                 }
 
-                if (result.getResult() == ResultType.SUCCESS) {
+                if (result.getResult() == ResultType.SUCCESS && config.getNode("debug").getBoolean()) {
                     getLogger().info("Transaction of " + amount + " to/from " + confAct + " Success!");
                 }
                 else {
@@ -135,19 +132,17 @@ public class ServerEco{
         BigDecimal amount = event.getTransactionResult().getAmount();
         if (event.getTransactionResult().getResult() == ResultType.SUCCESS) {
             if (event.getTransactionResult() == TransactionTypes.DEPOSIT) {
-                getLogger().debug("Deposit");
                 result = act.withdraw(event.getTransactionResult().getCurrency(), amount, Cause.source(this).build());
             }
-            if (event.getTransactionResult() == TransactionTypes.WITHDRAW) {
-                getLogger().debug("withdraw");
+            else if (event.getTransactionResult() == TransactionTypes.WITHDRAW) {
                 result = act.deposit(event.getTransactionResult().getCurrency(), amount, Cause.source(this).build());
             }
 
-            if (result.getResult() == ResultType.SUCCESS) {
-                //dont really need anything here
+            if (result.getResult() == ResultType.SUCCESS && config.getNode("debug").getBoolean()) {
+                getLogger().info("Refund transaction successful!");
             }
             else {
-                getLogger().warn("Transaction failed and refund failed");
+                getLogger().warn("Transaction and refund failed!");
             }
         }
     }
