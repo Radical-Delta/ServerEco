@@ -53,7 +53,7 @@ public class Config {
     }
 
     public void populate() {
-        get().getNode("version").setValue(1).setComment("DO NOT TOUCH or your config will go poof");
+        get().getNode("version").setValue(1).setComment("Change this to reload the defaults - It wont delete your custom configurations!");
         get().getNode("debug").setValue(false).setComment("If true, You will get information like the plugins ID displayed into the server console");
         get().getNode("plugin", "servereco", "account").setValue("Server").setComment("This is an example of how to configure this plugin, Just add more like this below to configure another plugin to use an account");
     }
