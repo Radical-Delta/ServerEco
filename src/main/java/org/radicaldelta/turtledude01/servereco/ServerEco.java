@@ -4,14 +4,19 @@ import com.google.inject.Inject;
 import ninja.leaping.configurate.commented.CommentedConfigurationNode;
 import ninja.leaping.configurate.loader.ConfigurationLoader;
 import ninja.leaping.configurate.objectmapping.ObjectMappingException;
+import org.radicaldelta.turtledude01.servereco.command.AddPlugin;
+import org.radicaldelta.turtledude01.servereco.command.DelPlugin;
 import org.slf4j.Logger;
 import org.spongepowered.api.Sponge;
+import org.spongepowered.api.command.args.GenericArguments;
+import org.spongepowered.api.command.spec.CommandSpec;
 import org.spongepowered.api.config.DefaultConfig;
 import org.spongepowered.api.event.Listener;
 import org.spongepowered.api.event.cause.Cause;
 import org.spongepowered.api.event.economy.EconomyTransactionEvent;
 import org.spongepowered.api.event.game.GameReloadEvent;
 import org.spongepowered.api.event.game.state.GamePreInitializationEvent;
+import org.spongepowered.api.event.game.state.GameStartedServerEvent;
 import org.spongepowered.api.event.service.ChangeServiceProviderEvent;
 import org.spongepowered.api.plugin.Plugin;
 import org.spongepowered.api.plugin.PluginContainer;
@@ -20,6 +25,7 @@ import org.spongepowered.api.service.economy.account.Account;
 import org.spongepowered.api.service.economy.transaction.ResultType;
 import org.spongepowered.api.service.economy.transaction.TransactionResult;
 import org.spongepowered.api.service.economy.transaction.TransactionTypes;
+import org.spongepowered.api.text.Text;
 
 import java.io.IOException;
 import java.math.BigDecimal;
@@ -31,6 +37,7 @@ import java.util.Optional;
 public class ServerEco{
 
     private EconomyService economyService;
+    private static ServerEco serverEco;
 
     @Inject
     private Logger logger;
@@ -45,11 +52,43 @@ public class ServerEco{
     @Inject @DefaultConfig(sharedRoot = false)
     Path path;
 
-    Config config;
+    static Config config = new Config();
 
     @Listener
     public void onPreInitialization(GamePreInitializationEvent event) {
+        serverEco = this;
         configSetup();
+    }
+
+    @Listener
+    public void onGameStartedServerEvent(GameStartedServerEvent event) {
+        CommandSpec addPlugin = CommandSpec.builder()
+                .description(Text.of("Add a plugin to ServerEco"))
+                .permission("servereco.command.add")
+                .arguments(
+                        GenericArguments.onlyOne(GenericArguments.string(Text.of("plugin"))),
+                        GenericArguments.onlyOne(GenericArguments.string(Text.of("account")))
+                )
+                .executor(new AddPlugin())
+                .build();
+
+        CommandSpec delPlugin = CommandSpec.builder()
+                .description(Text.of("Add a plugin to ServerEco"))
+                .permission("servereco.command.add")
+                .arguments(
+                        GenericArguments.onlyOne(GenericArguments.string(Text.of("plugin")))
+                )
+                .executor(new DelPlugin())
+                .build();
+
+        CommandSpec serverEco = CommandSpec.builder()
+                .description(Text.of("Base ServerEco command"))
+                .permission("servereco.command.base")
+                .child(addPlugin, "add")
+                .child(delPlugin, "del")
+                .build();
+
+        Sponge.getCommandManager().register(this, serverEco, "se", "servereco");
     }
 
     @Listener
@@ -144,6 +183,39 @@ public class ServerEco{
 
         try {
             config = loader.load().getValue(Config.type);
+
+        }
+        catch (IOException e) {
+            e.printStackTrace();
+        }
+        catch (ObjectMappingException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void setConfig(Config config) {
+        try {
+            loader.load().setValue(config.type, config);
+        }
+        catch (IOException e) {
+            e.printStackTrace();
+        }
+        catch (ObjectMappingException e) {
+            e.printStackTrace();
+        }
+    }
+    public static ServerEco getServerEco() {
+        return serverEco;
+    }
+    public ConfigurationLoader<CommentedConfigurationNode> getConfigLoader() {
+        return loader;
+    }
+    public Config getConfig() {
+        return config;
+    }
+    public void saveConfig() {
+        try {
+            loader.save(loader.createEmptyNode().setValue(Config.type, config));
         }
         catch (IOException e) {
             e.printStackTrace();
@@ -153,4 +225,3 @@ public class ServerEco{
         }
     }
 }
-

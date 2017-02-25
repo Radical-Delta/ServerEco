@@ -14,4 +14,19 @@ public class Config {
     public boolean debug = false;
     @Setting
     public Map<String, String> plugin = Collections.emptyMap();
+
+    public void addPlugin(String pluginS, String accountS) {
+        plugin.put(pluginS, accountS);
+
+    }
+
+    public void remPlugin(String pluginS) {
+        if (plugin.containsKey(pluginS)) {
+            plugin.remove(pluginS);
+        }
+    }
+
+    public void setDebug(Boolean debugB) {
+        debug = debugB;
+    }
 }
