@@ -1,16 +1,22 @@
 package org.radicaldelta.turtledude01.servereco;
 
+import com.google.gson.JsonObject;
 import com.google.inject.Inject;
 import ninja.leaping.configurate.commented.CommentedConfigurationNode;
 import org.slf4j.Logger;
+import org.spongepowered.api.Sponge;
 import org.spongepowered.api.config.DefaultConfig;
 import org.spongepowered.api.event.Listener;
 import org.spongepowered.api.event.cause.Cause;
 import org.spongepowered.api.event.economy.EconomyTransactionEvent;
+import org.spongepowered.api.event.filter.cause.All;
+import org.spongepowered.api.event.filter.cause.First;
 import org.spongepowered.api.event.game.state.GamePreInitializationEvent;
 import org.spongepowered.api.event.game.state.GameStartedServerEvent;
 import org.spongepowered.api.event.service.ChangeServiceProviderEvent;
 import org.spongepowered.api.plugin.Plugin;
+import org.spongepowered.api.plugin.PluginContainer;
+import org.spongepowered.api.plugin.PluginManager;
 import org.spongepowered.api.service.economy.EconomyService;
 import org.spongepowered.api.service.economy.account.Account;
 import org.spongepowered.api.service.economy.transaction.ResultType;
@@ -22,6 +28,7 @@ import java.math.BigDecimal;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Objects;
 import java.util.Optional;
 
 @Plugin(id = "servereco", name = "Server Eco", version = "0.1.0")
@@ -65,53 +72,61 @@ public class ServerEco{
     }
 
     @Listener
-    public void onTransaction(EconomyTransactionEvent event) {
-        String cause = event.getCause().toString();
+    public void onEconomyTransactionEvent(EconomyTransactionEvent event) {
+        Cause cause = event.getCause();
         BigDecimal amount;
         TransactionResult result = null;
         CommentedConfigurationNode config = Config.getConfig().get();
 
-        if (Config.getConfig().get().getNode("plugin", cause).getString() != null) {
-            getLogger().info("Plugin: " + cause);
-            if (config.getNode("plugin", cause, "account") != null) {
-                getLogger().info("Account" + config.getNode("plugin", cause, "account").getString());
+        Optional<PluginContainer> container = cause.all().stream().map(o -> {
+            if (o instanceof PluginContainer)
+                return Optional.of((PluginContainer) o);
+            else
+                return Sponge.getPluginManager().fromInstance(o);
+        }).filter(Optional::isPresent).map(Optional::get).findFirst();
+
+        if (!container.isPresent()) {
+            if (config.getNode("debug").getBoolean()) {
+                getLogger().warn("Warning! a plugin using the Economy is incompatible with this plugin!");
+            }
+            return;
+        }
+
+        String plugin = container.get().getId();
+
+
+        if (config.getNode("debug").getBoolean()) {
+            getLogger().info("Cause for transaction: " + plugin);
+        }
+
+        if (Config.getConfig().get().getNode("plugin", plugin).getString() != null) {
+            getLogger().info("Plugin: " + plugin);
+            if (config.getNode("plugin", plugin, "account") != null) {
+                getLogger().info("Account" + config.getNode("plugin", plugin, "account").getString());
                 amount = event.getTransactionResult().getAmount();
-                String confAct = config.getNode("plugin", cause, "account").getString();
+                String confAct = config.getNode("plugin", plugin, "account").getString();
                 Optional<Account> act = economyService.getOrCreateAccount(confAct);
-                if (event.getTransactionResult() == TransactionTypes.DEPOSIT) {
+                if (event.getTransactionResult().getType() == TransactionTypes.DEPOSIT) {
                     getLogger().debug("Deposit");
                     result = act.get().withdraw(event.getTransactionResult().getCurrency(), amount, Cause.source(this).build());
                 }
-                if (event.getTransactionResult() == TransactionTypes.WITHDRAW) {
+                else if (event.getTransactionResult().getType() == TransactionTypes.WITHDRAW) {
                     getLogger().debug("withdraw");
                     result = act.get().deposit(event.getTransactionResult().getCurrency(), amount, Cause.source(this).build());
                 }
+                else {
+                    getLogger().error("A malformed transaction has occured!");
+                    return;
+                }
 
-                if (result.getResult() == ResultType.ACCOUNT_NO_SPACE) {
-                    getLogger().warn("Account " + act + " has no room for the funds!");
-                    cancelEco(event);
-
-                }
-                else if (result.getResult() == ResultType.ACCOUNT_NO_FUNDS) {
-                    getLogger().warn("Account " + act + " has no funds!");
-                    cancelEco(event);
-                }
-                else if (result.getResult() == ResultType.CONTEXT_MISMATCH) {
-                    getLogger().warn("Context mismatch"); //not sure what this means tbh
-                    cancelEco(event);
-                }
-                else if (result.getResult() == ResultType.FAILED) {
-                    getLogger().warn("Transaction failed with " + act + " on plugin " + cause);
-                    cancelEco(event);
-
-                }
-                else if (result.getResult() == ResultType.SUCCESS) {
+                if (result.getResult() == ResultType.SUCCESS) {
                     getLogger().info("Transaction of " + amount + " to/from " + confAct + " Success!");
                 }
+                else {
+                    getLogger().warn("Transaction failed!"); //not sure what this means tbh
+                    cancelEco(event);
+                }
             }
-        }
-        else if (config.getNode("debug").getBoolean()) {
-            getLogger().info("Cause for transaction: " + cause);
         }
     }
     public void cancelEco(EconomyTransactionEvent event) {
@@ -128,20 +143,11 @@ public class ServerEco{
                 result = act.deposit(event.getTransactionResult().getCurrency(), amount, Cause.source(this).build());
             }
 
-            if (result.getResult() == ResultType.ACCOUNT_NO_SPACE) {
-                getLogger().warn("Account " + act + " has no room for the funds!");
-            }
-            else if (result.getResult() == ResultType.ACCOUNT_NO_FUNDS) {
-                getLogger().warn("Account " + act + " has no funds!");
-            }
-            else if (result.getResult() == ResultType.CONTEXT_MISMATCH) {
-                getLogger().warn("Context mismatch"); //not sure what this means tbh
-            }
-            else if (result.getResult() == ResultType.FAILED) {
-                getLogger().warn("Transaction failed and refund failed");
-            }
-            else if (result.getResult() == ResultType.SUCCESS) {
+            if (result.getResult() == ResultType.SUCCESS) {
                 //dont really need anything here
+            }
+            else {
+                getLogger().warn("Transaction failed and refund failed");
             }
         }
     }
