@@ -10,6 +10,7 @@ import org.spongepowered.api.config.DefaultConfig;
 import org.spongepowered.api.event.Listener;
 import org.spongepowered.api.event.cause.Cause;
 import org.spongepowered.api.event.economy.EconomyTransactionEvent;
+import org.spongepowered.api.event.game.GameReloadEvent;
 import org.spongepowered.api.event.game.state.GamePreInitializationEvent;
 import org.spongepowered.api.event.service.ChangeServiceProviderEvent;
 import org.spongepowered.api.plugin.Plugin;
@@ -47,22 +48,13 @@ public class ServerEco{
     Config config;
 
     @Listener
-    public void onPreInitialization(GamePreInitializationEvent event) throws ObjectMappingException {
-        if (!Files.exists(path)) {
-            try {
-                Sponge.getGame().getAssetManager().getAsset(this, "default.conf").get().copyToFile(path);
-            }
-            catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
+    public void onPreInitialization(GamePreInitializationEvent event) {
+        configSetup();
+    }
 
-        try {
-            config = loader.load().getValue(Config.type);
-        }
-        catch (IOException e) {
-            e.printStackTrace();
-        }
+    @Listener
+    public void onReloadEvent(GameReloadEvent event) {
+        configSetup();
     }
 
     @Listener
@@ -138,6 +130,26 @@ public class ServerEco{
             else {
                 getLogger().warn("Transaction failed and refund failed");
             }
+        }
+    }
+    public void configSetup(){
+        if (!Files.exists(path)) {
+            try {
+                Sponge.getGame().getAssetManager().getAsset(this, "default.conf").get().copyToFile(path);
+            }
+            catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+
+        try {
+            config = loader.load().getValue(Config.type);
+        }
+        catch (IOException e) {
+            e.printStackTrace();
+        }
+        catch (ObjectMappingException e) {
+            e.printStackTrace();
         }
     }
 }
