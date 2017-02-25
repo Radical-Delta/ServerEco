@@ -28,7 +28,10 @@ import java.util.Optional;
 public class ServerEco{
 
     private EconomyService economyService;
+
+    @Inject
     private Logger logger;
+
     private static ServerEco serverEco;
 
     public Logger getLogger() {
@@ -39,6 +42,11 @@ public class ServerEco{
     @DefaultConfig(sharedRoot = false)
     private Path configDir;
 
+    @Inject
+    private ServerEco() {
+        this.serverEco = this;
+    }
+
     public static ServerEco getServerEco()
     {
         return serverEco;
@@ -46,21 +54,6 @@ public class ServerEco{
 
     @Listener
     public void onPreInitialization(GamePreInitializationEvent event) {
-
-        // Create Config Directory for servereco
-        if (!Files.exists(configDir))
-        {
-            try
-            {
-                Files.createDirectories(configDir);
-            }
-            catch (IOException e)
-            {
-                e.printStackTrace();
-            }
-        }
-
-        // Create config.conf
         Config.getConfig().setup();
     }
 

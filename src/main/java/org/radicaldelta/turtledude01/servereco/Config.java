@@ -24,16 +24,10 @@ public class Config {
     private CommentedConfigurationNode configNode;
 
     public void setup() {
-        if (!Files.exists(configFile)) {
-            try {
-                Files.createFile(configFile);
-                load();
-                populate();
-                save();
-            }
-            catch (IOException e) {
-                e.printStackTrace();
-            }
+        load();
+        if (configNode.getNode("version").getInt() != 1) {
+            populate();
+            save();
         }
         else {
             load();
@@ -59,6 +53,7 @@ public class Config {
     }
 
     public void populate() {
+        get().getNode("version").setValue(1).setComment("DO NOT TOUCH or your config will go poof");
         get().getNode("debug").setValue(false);
         get().getNode("plugin", "servereco", "account").setValue("Server");
     }
