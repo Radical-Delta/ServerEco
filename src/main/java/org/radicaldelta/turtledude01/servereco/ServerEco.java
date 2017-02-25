@@ -1,5 +1,6 @@
 package org.radicaldelta.turtledude01.servereco;
 
+import com.google.gson.JsonObject;
 import com.google.inject.Inject;
 import ninja.leaping.configurate.commented.CommentedConfigurationNode;
 import org.slf4j.Logger;
@@ -8,28 +9,37 @@ import org.spongepowered.api.config.DefaultConfig;
 import org.spongepowered.api.event.Listener;
 import org.spongepowered.api.event.cause.Cause;
 import org.spongepowered.api.event.economy.EconomyTransactionEvent;
+import org.spongepowered.api.event.filter.cause.All;
+import org.spongepowered.api.event.filter.cause.First;
 import org.spongepowered.api.event.game.state.GamePreInitializationEvent;
+import org.spongepowered.api.event.game.state.GameStartedServerEvent;
 import org.spongepowered.api.event.service.ChangeServiceProviderEvent;
 import org.spongepowered.api.plugin.Plugin;
 import org.spongepowered.api.plugin.PluginContainer;
+import org.spongepowered.api.plugin.PluginManager;
 import org.spongepowered.api.service.economy.EconomyService;
 import org.spongepowered.api.service.economy.account.Account;
 import org.spongepowered.api.service.economy.transaction.ResultType;
 import org.spongepowered.api.service.economy.transaction.TransactionResult;
 import org.spongepowered.api.service.economy.transaction.TransactionTypes;
 
+import java.io.IOException;
 import java.math.BigDecimal;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Objects;
 import java.util.Optional;
 
 @Plugin(id = "servereco", name = "Server Eco", version = "0.1.0")
 public class ServerEco{
 
     private EconomyService economyService;
-    private static ServerEco serverEco;
 
     @Inject
     private Logger logger;
+
+    private static ServerEco serverEco;
 
     public Logger getLogger() {
         return logger;
@@ -49,8 +59,6 @@ public class ServerEco{
         return serverEco;
     }
 
-    CommentedConfigurationNode config = Config.getConfig().get();
-
     @Listener
     public void onPreInitialization(GamePreInitializationEvent event) {
         Config.getConfig().setup();
@@ -68,6 +76,7 @@ public class ServerEco{
         Cause cause = event.getCause();
         BigDecimal amount;
         TransactionResult result = null;
+        CommentedConfigurationNode config = Config.getConfig().get();
 
         Optional<PluginContainer> container = cause.all().stream().map(o -> {
             if (o instanceof PluginContainer)
@@ -85,16 +94,17 @@ public class ServerEco{
 
         String plugin = container.get().getId();
 
+
         if (config.getNode("debug").getBoolean()) {
             getLogger().info("Cause for transaction: " + plugin);
         }
 
         if (Config.getConfig().get().getNode("plugin", plugin).getString() != null) {
             if (config.getNode("plugin", plugin, "account") != null) {
+                getLogger().info("Account" + config.getNode("plugin", plugin, "account").getString());
                 amount = event.getTransactionResult().getAmount();
                 String confAct = config.getNode("plugin", plugin, "account").getString();
                 Optional<Account> act = economyService.getOrCreateAccount(confAct);
-
                 if (event.getTransactionResult().getType() == TransactionTypes.DEPOSIT) {
                     result = act.get().withdraw(event.getTransactionResult().getCurrency(), amount, Cause.source(this).build());
                 }
@@ -106,11 +116,11 @@ public class ServerEco{
                     return;
                 }
 
-                if (result.getResult() == ResultType.SUCCESS && config.getNode("debug").getBoolean()) {
+                if (result.getResult() == ResultType.SUCCESS) {
                     getLogger().info("Transaction of " + amount + " to/from " + confAct + " Success!");
                 }
                 else {
-                    getLogger().warn("Transaction failed!"); //not sure what this means tbh
+                    getLogger().warn("Transaction failed!");
                     cancelEco(event);
                 }
             }
@@ -120,20 +130,19 @@ public class ServerEco{
         TransactionResult result = null;
         Account act = event.getTransactionResult().getAccount();
         BigDecimal amount = event.getTransactionResult().getAmount();
-
         if (event.getTransactionResult().getResult() == ResultType.SUCCESS) {
             if (event.getTransactionResult() == TransactionTypes.DEPOSIT) {
                 result = act.withdraw(event.getTransactionResult().getCurrency(), amount, Cause.source(this).build());
             }
-            else if (event.getTransactionResult() == TransactionTypes.WITHDRAW) {
+            if (event.getTransactionResult() == TransactionTypes.WITHDRAW) {
                 result = act.deposit(event.getTransactionResult().getCurrency(), amount, Cause.source(this).build());
             }
 
-            if (result.getResult() == ResultType.SUCCESS && config.getNode("debug").getBoolean()) {
-                getLogger().info("Refund transaction successful!");
+            if (result.getResult() == ResultType.SUCCESS) {
+                //dont really need anything here
             }
             else {
-                getLogger().warn("Transaction and refund failed!");
+                getLogger().warn("Transaction failed and refund failed");
             }
         }
     }
