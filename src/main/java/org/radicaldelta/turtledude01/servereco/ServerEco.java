@@ -38,15 +38,8 @@ import java.util.Optional;
 @Plugin(id = "servereco", name = "Server Eco", version = "0.1.2")
 public class ServerEco {
 
-    private EconomyService economyService;
+    static Config config = new Config();
     private static ServerEco serverEco;
-
-    @Inject
-    private Logger logger;
-
-    public Logger getLogger() {
-        return logger;
-    }
 
     @Inject
     @DefaultConfig(sharedRoot = false)
@@ -56,7 +49,18 @@ public class ServerEco {
     @DefaultConfig(sharedRoot = false)
     Path path;
 
-    static Config config = new Config();
+    private EconomyService economyService;
+
+    @Inject
+    private Logger logger;
+
+    public static ServerEco getServerEco() {
+        return serverEco;
+    }
+
+    public Logger getLogger() {
+        return logger;
+    }
 
     @Listener
     public void onPreInitialization(GamePreInitializationEvent event) {
@@ -210,6 +214,14 @@ public class ServerEco {
         }
     }
 
+    public ConfigurationLoader<CommentedConfigurationNode> getConfigLoader() {
+        return loader;
+    }
+
+    public Config getConfig() {
+        return config;
+    }
+
     public void setConfig(Config config) {
         try {
             loader.load().setValue(config.type, config);
@@ -218,18 +230,6 @@ public class ServerEco {
         } catch (ObjectMappingException e) {
             e.printStackTrace();
         }
-    }
-
-    public static ServerEco getServerEco() {
-        return serverEco;
-    }
-
-    public ConfigurationLoader<CommentedConfigurationNode> getConfigLoader() {
-        return loader;
-    }
-
-    public Config getConfig() {
-        return config;
     }
 
     public void saveConfig() {
