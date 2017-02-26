@@ -15,6 +15,7 @@ public class AddPlugin implements CommandExecutor {
 
     Config config = ServerEco.getServerEco().getConfig();
     ServerEco serverEco = ServerEco.getServerEco();
+
     @Override
     public CommandResult execute(CommandSource src, CommandContext args) throws CommandException {
         if (src.hasPermission("servereco.command.add")) {

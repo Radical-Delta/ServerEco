@@ -36,7 +36,7 @@ import java.nio.file.Path;
 import java.util.Optional;
 
 @Plugin(id = "servereco", name = "Server Eco", version = "0.1.2")
-public class ServerEco{
+public class ServerEco {
 
     private EconomyService economyService;
     private static ServerEco serverEco;
@@ -48,10 +48,12 @@ public class ServerEco{
         return logger;
     }
 
-    @Inject @DefaultConfig(sharedRoot = false)
+    @Inject
+    @DefaultConfig(sharedRoot = false)
     ConfigurationLoader<CommentedConfigurationNode> loader;
 
-    @Inject @DefaultConfig(sharedRoot = false)
+    @Inject
+    @DefaultConfig(sharedRoot = false)
     Path path;
 
     static Config config = new Config();
@@ -153,23 +155,22 @@ public class ServerEco{
             Optional<Account> act = economyService.getOrCreateAccount(confAct);
             if (event.getTransactionResult().getType() == TransactionTypes.DEPOSIT) {
                 result = act.get().withdraw(event.getTransactionResult().getCurrency(), amount, Cause.source(this).build());
-            }
-            else if (event.getTransactionResult().getType() == TransactionTypes.WITHDRAW) {
+            } else if (event.getTransactionResult().getType() == TransactionTypes.WITHDRAW) {
                 result = act.get().deposit(event.getTransactionResult().getCurrency(), amount, Cause.source(this).build());
-            }
-            else {
+            } else {
                 getLogger().error("A malformed transaction has occured!");
                 return;
             }
 
             if (result.getResult() == ResultType.SUCCESS) {
                 getLogger().info("Transaction of " + amount + " to/from " + confAct + " Success!");
-            }
-            else {
-                getLogger().warn("Transaction failed!");cancelEco(event);
+            } else {
+                getLogger().warn("Transaction failed!");
+                cancelEco(event);
             }
         }
     }
+
     public void cancelEco(EconomyTransactionEvent event) {
         TransactionResult result = null;
         Account act = event.getTransactionResult().getAccount();
@@ -184,18 +185,17 @@ public class ServerEco{
 
             if (result.getResult() == ResultType.SUCCESS) {
                 //dont really need anything here
-            }
-            else {
+            } else {
                 getLogger().warn("Transaction failed and refund failed");
             }
         }
     }
-    public void configSetup(){
+
+    public void configSetup() {
         if (!Files.exists(path)) {
             try {
                 Sponge.getGame().getAssetManager().getAsset(this, "default.conf").get().copyToFile(path);
-            }
-            catch (IOException e) {
+            } catch (IOException e) {
                 e.printStackTrace();
             }
         }
@@ -203,11 +203,9 @@ public class ServerEco{
         try {
             config = loader.load().getValue(Config.type);
 
-        }
-        catch (IOException e) {
+        } catch (IOException e) {
             e.printStackTrace();
-        }
-        catch (ObjectMappingException e) {
+        } catch (ObjectMappingException e) {
             e.printStackTrace();
         }
     }
@@ -215,31 +213,31 @@ public class ServerEco{
     public void setConfig(Config config) {
         try {
             loader.load().setValue(config.type, config);
-        }
-        catch (IOException e) {
+        } catch (IOException e) {
             e.printStackTrace();
-        }
-        catch (ObjectMappingException e) {
+        } catch (ObjectMappingException e) {
             e.printStackTrace();
         }
     }
+
     public static ServerEco getServerEco() {
         return serverEco;
     }
+
     public ConfigurationLoader<CommentedConfigurationNode> getConfigLoader() {
         return loader;
     }
+
     public Config getConfig() {
         return config;
     }
+
     public void saveConfig() {
         try {
             loader.save(loader.createEmptyNode().setValue(Config.type, config));
-        }
-        catch (IOException e) {
+        } catch (IOException e) {
             e.printStackTrace();
-        }
-        catch (ObjectMappingException e) {
+        } catch (ObjectMappingException e) {
             e.printStackTrace();
         }
     }

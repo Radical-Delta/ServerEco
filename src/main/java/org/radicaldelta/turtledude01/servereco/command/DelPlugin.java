@@ -13,6 +13,7 @@ import org.spongepowered.api.text.format.TextColors;
 public class DelPlugin implements CommandExecutor {
     Config config = ServerEco.getServerEco().getConfig();
     ServerEco serverEco = ServerEco.getServerEco();
+
     @Override
     public CommandResult execute(CommandSource src, CommandContext args) throws CommandException {
         if (src.hasPermission("servereco.command.del")) {
@@ -21,8 +22,7 @@ public class DelPlugin implements CommandExecutor {
                 config.plugin.remove(plugin);
                 serverEco.saveConfig();
                 src.sendMessage(Text.of(TextColors.GREEN, "Deleted plugin."));
-            }
-            else {
+            } else {
                 src.sendMessage(Text.of(TextColors.GREEN, "That plugin was not configured!"));
             }
         }

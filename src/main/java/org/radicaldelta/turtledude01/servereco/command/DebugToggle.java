@@ -10,7 +10,7 @@ import org.spongepowered.api.command.spec.CommandExecutor;
 import org.spongepowered.api.text.Text;
 import org.spongepowered.api.text.format.TextColors;
 
-public class DebugToggle implements CommandExecutor{
+public class DebugToggle implements CommandExecutor {
     Config config = ServerEco.getServerEco().getConfig();
     ServerEco serverEco = ServerEco.getServerEco();
 
@@ -21,12 +21,10 @@ public class DebugToggle implements CommandExecutor{
             if (!args.getOne("boolean").isPresent()) {
                 if (config.debug) {
                     bool = false;
-                }
-                else {
+                } else {
                     bool = true;
                 }
-            }
-            else {
+            } else {
                 bool = args.<Boolean>getOne("boolean").get();
             }
 
