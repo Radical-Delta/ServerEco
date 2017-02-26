@@ -4,10 +4,7 @@ import com.google.inject.Inject;
 import ninja.leaping.configurate.commented.CommentedConfigurationNode;
 import ninja.leaping.configurate.loader.ConfigurationLoader;
 import ninja.leaping.configurate.objectmapping.ObjectMappingException;
-import org.radicaldelta.turtledude01.servereco.command.AddPlugin;
-import org.radicaldelta.turtledude01.servereco.command.DebugToggle;
-import org.radicaldelta.turtledude01.servereco.command.DelPlugin;
-import org.radicaldelta.turtledude01.servereco.command.ListPlugins;
+import org.radicaldelta.turtledude01.servereco.command.*;
 import org.slf4j.Logger;
 import org.spongepowered.api.Sponge;
 import org.spongepowered.api.command.args.GenericArguments;
@@ -104,6 +101,12 @@ public class ServerEco {
                 .executor(new DebugToggle())
                 .build();
 
+        CommandSpec helpCmd = CommandSpec.builder()
+                .description(Text.of("Show help for ServerEco"))
+                .permission("servereco.command.help")
+                .executor(new HelpCmd())
+                .build();
+
         CommandSpec serverEco = CommandSpec.builder()
                 .description(Text.of("Base ServerEco command"))
                 .permission("servereco.command.base")
@@ -111,6 +114,8 @@ public class ServerEco {
                 .child(delPlugin, "del")
                 .child(listPlugins, "list")
                 .child(debugToggle, "debug")
+                .child(helpCmd, "help")
+                .executor(new HelpCmd())
                 .build();
 
         Sponge.getCommandManager().register(this, serverEco, "se", "servereco");
