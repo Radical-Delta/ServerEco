@@ -7,6 +7,9 @@ import org.spongepowered.api.command.CommandResult;
 import org.spongepowered.api.command.CommandSource;
 import org.spongepowered.api.command.args.CommandContext;
 import org.spongepowered.api.command.spec.CommandExecutor;
+import org.spongepowered.api.text.Text;
+import org.spongepowered.api.text.format.TextColors;
+
 
 public class AddPlugin implements CommandExecutor {
 
@@ -20,6 +23,7 @@ public class AddPlugin implements CommandExecutor {
 
             config.plugin.put(plugin, account);
             serverEco.saveConfig();
+            src.sendMessage(Text.of(TextColors.GREEN, "Added or modified plugin."));
         }
         return CommandResult.success();
     }

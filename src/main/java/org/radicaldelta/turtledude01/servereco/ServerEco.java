@@ -5,7 +5,9 @@ import ninja.leaping.configurate.commented.CommentedConfigurationNode;
 import ninja.leaping.configurate.loader.ConfigurationLoader;
 import ninja.leaping.configurate.objectmapping.ObjectMappingException;
 import org.radicaldelta.turtledude01.servereco.command.AddPlugin;
+import org.radicaldelta.turtledude01.servereco.command.DebugToggle;
 import org.radicaldelta.turtledude01.servereco.command.DelPlugin;
+import org.radicaldelta.turtledude01.servereco.command.ListPlugins;
 import org.slf4j.Logger;
 import org.spongepowered.api.Sponge;
 import org.spongepowered.api.command.args.GenericArguments;
@@ -81,11 +83,28 @@ public class ServerEco{
                 .executor(new DelPlugin())
                 .build();
 
+        CommandSpec listPlugins = CommandSpec.builder()
+                .description(Text.of("List all configured Plugin-> Account pairs"))
+                .permission("servereco.command.list")
+                .executor(new ListPlugins())
+                .build();
+
+        CommandSpec debugToggle = CommandSpec.builder()
+                .description(Text.of("Toggle or set debug"))
+                .permission("servereco.command.debug")
+                .arguments(
+                        GenericArguments.optional(GenericArguments.bool(Text.of("boolean")))
+                )
+                .executor(new DebugToggle())
+                .build();
+
         CommandSpec serverEco = CommandSpec.builder()
                 .description(Text.of("Base ServerEco command"))
                 .permission("servereco.command.base")
                 .child(addPlugin, "add")
                 .child(delPlugin, "del")
+                .child(listPlugins, "list")
+                .child(debugToggle, "debug")
                 .build();
 
         Sponge.getCommandManager().register(this, serverEco, "se", "servereco");

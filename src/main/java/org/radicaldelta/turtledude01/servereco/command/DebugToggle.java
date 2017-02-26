@@ -10,21 +10,29 @@ import org.spongepowered.api.command.spec.CommandExecutor;
 import org.spongepowered.api.text.Text;
 import org.spongepowered.api.text.format.TextColors;
 
-public class DelPlugin implements CommandExecutor {
+public class DebugToggle implements CommandExecutor{
     Config config = ServerEco.getServerEco().getConfig();
     ServerEco serverEco = ServerEco.getServerEco();
+
     @Override
     public CommandResult execute(CommandSource src, CommandContext args) throws CommandException {
-        if (src.hasPermission("servereco.command.del")) {
-            String plugin = args.<String>getOne("plugin").get();
-            if (config.plugin.keySet().contains(plugin)) {
-                config.plugin.remove(plugin);
-                serverEco.saveConfig();
-                src.sendMessage(Text.of(TextColors.GREEN, "Deleted plugin."));
+        if (src.hasPermission("servereco.command.add")) {
+            Boolean bool;
+            if (!args.getOne("boolean").isPresent()) {
+                if (config.debug) {
+                    bool = false;
+                }
+                else {
+                    bool = true;
+                }
             }
             else {
-                src.sendMessage(Text.of(TextColors.GREEN, "That plugin was not configured!"));
+                bool = args.<Boolean>getOne("boolean").get();
             }
+
+            src.sendMessage(Text.of(TextColors.GREEN, "Debug", TextColors.RED, " = ", TextColors.GREEN, bool.toString()));
+            config.debug = bool;
+            serverEco.saveConfig();
         }
         return CommandResult.success();
     }
