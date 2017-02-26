@@ -35,7 +35,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Optional;
 
-@Plugin(id = "servereco", name = "Server Eco", version = "0.1.1")
+@Plugin(id = "servereco", name = "Server Eco", version = "0.1.2")
 public class ServerEco{
 
     private EconomyService economyService;
